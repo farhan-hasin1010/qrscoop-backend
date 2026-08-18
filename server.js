@@ -77,13 +77,9 @@ app.use(helmet());
 
 // ── CORS: only allow the configured frontend origin ──────────────────────────
 app.use(cors({
-    origin: [
-        'https://qrscoop.com',
-        'https://www.qrscoop.com',
-    ],
+    origin: FRONTEND_URL,
     credentials: true,
 }));
-
 app.use(express.json());
 
 // ── Rate limiters ─────────────────────────────────────────────────────────────
