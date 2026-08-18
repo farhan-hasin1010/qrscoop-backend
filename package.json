@@ -1,7 +1,7 @@
 {
   "name": "qrscoop-backend",
   "version": "1.0.0",
-  "description": "Backend engine infrastructure for QRFlow",
+  "description": "Backend engine infrastructure for QRScoop",
   "main": "server.js",
   "type": "module",
   "scripts": {
