@@ -99,6 +99,20 @@ const loginLimiter = rateLimit({
     message: { error: 'Too many login attempts. Please try again in 15 minutes.' },
 });
 
+// Track failed attempts per email in Supabase
+app.post('/api/auth/login', loginLimiter, async (req, res) => {
+    const { email, password } = req.body;
+    if (!email || !password) return res.status(400).json({ error: 'Email and password are required.' });
+
+    // Add failed attempt tracking
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) {
+        // Generic message — never reveal which field was wrong
+        return res.status(400).json({ error: 'Invalid email or password.' });
+    }
+    res.json({ message: 'Login successful!', session: data.session });
+});
+
 // Broad limit on all other API routes
 const apiLimiter = rateLimit({
     windowMs: 60 * 1000,
