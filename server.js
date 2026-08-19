@@ -452,6 +452,25 @@ app.post('/api/payments/verify', authenticate, async (req, res) => {
     }
 });
 
+app.post('/api/payments/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
+    const signature = req.headers['x-razorpay-signature'];
+    const secret = process.env.RAZORPAY_WEBHOOK_SECRET;
+    
+    const shasum = crypto.createHmac('sha256', secret);
+    shasum.update(req.body);
+    const digest = shasum.digest('hex');
+    
+    if (digest !== signature) return res.status(400).json({ error: 'Invalid signature' });
+    
+    const event = JSON.parse(req.body);
+    if (event.event === 'payment.captured') {
+        const paymentId = event.payload.payment.entity.id;
+        const notes = event.payload.payment.entity.notes;
+        // Upgrade user from webhook as backup
+    }
+    res.json({ status: 'ok' });
+});
+
 // ─────────────────────────────────────────────────────────────────────────────
 // DYNAMIC REDIRECT ROUTER
 //
