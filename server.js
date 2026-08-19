@@ -182,9 +182,17 @@ app.post('/api/qr/generate', apiLimiter, authenticate, async (req, res) => {
     if (!targetUrl) {
         return res.status(400).json({ error: 'Content payload is required.' });
     }
+
+    //No input length limits on QR content
+
+    if (targetUrl.length > 2048) {
+        return res.status(400).json({ error: 'URL is too long. Maximum 2048 characters.' });
+    }
+    
     if (contentType === 'link' && !isValidHttpUrl(targetUrl)) {
         return res.status(400).json({ error: 'Please provide a valid http:// or https:// URL.' });
     }
+    
 
     try {
         const { data: sub } = await supabase
