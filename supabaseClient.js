@@ -1,13 +1,16 @@
 import { createClient } from '@supabase/supabase-js';
-import dotenv from 'dotenv';
-
-dotenv.config();
 
 const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseKey = process.env.SUPABASE_KEY;
+const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-if (!supabaseUrl || !supabaseKey) {
-  console.error("❌ Missing Supabase Environment Variables.");
+if (!supabaseUrl || !supabaseServiceRoleKey) {
+  console.error("Missing Supabase Service Role Key on backend!");
 }
 
-export const supabase = createClient(supabaseUrl, supabaseKey);
+// Bypasses RLS so the backend can securely update payment_logs and user_subscriptions
+export const supabase = createClient(supabaseUrl, supabaseServiceRoleKey, {
+  auth: {
+    persistSession: false,
+    autoRefreshToken: false,
+  }
+});
