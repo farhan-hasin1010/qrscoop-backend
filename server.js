@@ -75,12 +75,6 @@ const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
 // ── Security headers ─────────────────────────────────────────────────────────
 app.use(helmet());
 // Force HTTPS in production
-app.use((req, res, next) => {
-    if (process.env.NODE_ENV === 'production' && req.headers['x-forwarded-proto'] !== 'https') {
-        return res.redirect(301, `https://${req.headers.host}${req.url}`);
-    }
-    next();
-});
 
 // ── CORS: only allow the configured frontend origin ──────────────────────────
 app.use(cors({
