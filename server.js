@@ -527,17 +527,7 @@ app.get('/r/:shortCode', async (req, res) => {
     if (!/^[a-f0-9]{8}$/.test(shortCode)) {
         return res.status(400).send('<h1>Invalid QR Code</h1>');
     }
-    const { data: subData } = await supabase
-    .from('user_subscriptions')
-    .select('is_premium, premium_until')
-    .eq('user_id', qrData.user_id)
-    .single();
-
-    const isPremium = Boolean(
-        subData?.is_premium && 
-        subData?.premium_until && 
-        new Date(subData.premium_until) > new Date()
-    );
+    
 
     try {
         const { data: qrData, error: qrError } = await supabase
@@ -548,14 +538,22 @@ app.get('/r/:shortCode', async (req, res) => {
 
         if (qrError || !qrData) return res.status(404).send('<h1>404: QR Code Not Found</h1>');
 
+        // We must fetch the QR code first to get the user_id
+
         const { data: subData } = await supabase
             .from('user_subscriptions')
-            .select('is_premium')
+            .select('is_premium, premium_until')
             .eq('user_id', qrData.user_id)
             .single();
 
-        const isPremium = subData?.is_premium || false;
+        const isPremium = Boolean(
+            subData?.is_premium && 
+            subData?.premium_until && 
+            new Date(subData.premium_until) > new Date()
+        );
 
+        
+        //ENFORCE EXPIRATION
         if (!isPremium) {
             const daysOld = (Date.now() - new Date(qrData.created_at).getTime()) / (1000 * 60 * 60 * 24);
             if (daysOld > 7) {
