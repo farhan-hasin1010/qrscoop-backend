@@ -379,12 +379,23 @@ app.get('/api/user/:userId/status', authenticate, async (req, res) => {
     try {
         const { data, error } = await supabase
             .from('user_subscriptions')
-            .select('is_premium')
+            .select('is_premium, premium_until')
             .eq('user_id', userId)
             .single();
 
         if (error && error.code !== 'PGRST116') throw error;
-        res.json({ isPremium: data?.is_premium || false });
+
+        // Check if premium flag is true AND the expiration date is still in the future
+        const isStillActive = Boolean(
+            data?.is_premium && 
+            data?.premium_until && 
+            new Date(data.premium_until) > new Date()
+        );
+
+        res.json({ 
+            isPremium: isStillActive,
+            premiumUntil: data?.premium_until || null
+        });
     } catch (err) {
         console.error('Status fetch error:', err.message);
         res.status(500).json({ error: 'Failed to fetch user status.' });
@@ -431,6 +442,21 @@ app.post('/api/payments/verify', authenticate, async (req, res) => {
     if (expectedSignature !== razorpay_signature) {
         return res.status(400).json({ error: 'Payment signature verification failed.' });
     }
+    // Calculate expiration date (30 days from now)
+    const now = new Date();
+    const expiresAt = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000); // 30 days in ms
+    
+    // Upgrade the user with an expiration date
+    const { error: upErr } = await supabase
+        .from('user_subscriptions')
+        .upsert({ 
+            user_id: userId, 
+            is_premium: true, 
+            premium_until: expiresAt.toISOString(),
+            updated_at: new Date().toISOString()
+        }, { onConflict: 'user_id' });
+    
+    if (upErr) throw upErr;
 
     try {
         // Idempotency: check if this payment was already processed
@@ -501,6 +527,17 @@ app.get('/r/:shortCode', async (req, res) => {
     if (!/^[a-f0-9]{8}$/.test(shortCode)) {
         return res.status(400).send('<h1>Invalid QR Code</h1>');
     }
+    const { data: subData } = await supabase
+    .from('user_subscriptions')
+    .select('is_premium, premium_until')
+    .eq('user_id', qrData.user_id)
+    .single();
+
+    const isPremium = Boolean(
+        subData?.is_premium && 
+        subData?.premium_until && 
+        new Date(subData.premium_until) > new Date()
+    );
 
     try {
         const { data: qrData, error: qrError } = await supabase
